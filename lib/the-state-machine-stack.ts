@@ -53,9 +53,14 @@ export class TheStateMachineStack extends cdk.Stack {
     const buildPizza = new tasks.LambdaInvoke(this, "Build Pizza Job", {
       lambdaFunction: buildPizzaLambda,
       inputPath: '$.flavour',
-      resultPath: '$.pineappleAnalysis',
+      resultPath: '$.buildResult',
       payloadResponseOnly: true
     })
+
+    const buildPizzaFail = new sfn.Fail(this, 'Sorry, we failed you.', {
+      cause: 'Ran out of cheese!',
+      error: 'Failed To Build Pizza',
+    });
     
     // TODO: Step Cooking Pizza
     // ERROR: Burnt
@@ -70,10 +75,15 @@ export class TheStateMachineStack extends cdk.Stack {
     const cookPizza = new tasks.LambdaInvoke(this, "Cook Pizza Job", {
       lambdaFunction: cookPizzaLambda,
       inputPath: '$.flavour',
-      resultPath: '$.pineappleAnalysis',
+      resultPath: '$.cookResult',
       payloadResponseOnly: true
     })
 
+    const cookPizzaFail = new sfn.Fail(this, 'Cook ruined.', {
+      cause: 'Cook fell asleep...',
+      error: 'Pizza burnt!',
+    });
+  
     // TODO: Step Deliver Pizza
     // ERROR: Driver lost
     // SUCCESS: Delivered!
@@ -98,7 +108,7 @@ export class TheStateMachineStack extends cdk.Stack {
     });
 
     // If they didnt ask for pineapple let's cook the pizza
-    const driverLostPizza = new sfn.Fail(this, 'Sorry, we failed you.', {
+    const driverLostPizza = new sfn.Fail(this, 'Epic cheese fail.', {
       cause: 'Pizza driver lost your pizza!',
       error: 'Failed To Deliver Pizza',
     });
@@ -106,16 +116,21 @@ export class TheStateMachineStack extends cdk.Stack {
     //Express Step function definition
     const definition = sfn.Chain
     .start(orderPizza)
-    .next(new sfn.Choice(this, 'With Pineapple?') // Logical choice added to flow
-        // Look at the "status" field
-        .when(sfn.Condition.booleanEquals('$.pineappleAnalysis.containsPineapple', true), pineappleDetected) // Fail for pineapple
+    .next(new sfn.Choice(this, 'With Pineapple?')
+        .when(sfn.Condition.booleanEquals('$.pineappleAnalysis.containsPineapple', true), pineappleDetected)
         .otherwise(buildPizza)
-        .afterwards()
-        .next(cookPizza)
-        .next(deliverPizza)
-        .next(new sfn.Choice(this, 'Delivered?')
-          .when(sfn.Condition.booleanEquals('$.deliveryStatus.delivered', true), deliveredPizza)
-          .otherwise(driverLostPizza)))
+        .afterwards())
+    .next(new sfn.Choice(this, 'Got cheese?')
+        .when(sfn.Condition.booleanEquals('$.buildResult.outOfCheese', true), buildPizzaFail)
+        .otherwise(cookPizza)
+        .afterwards())
+    .next(new sfn.Choice(this, 'Cooked properly?')
+        .when(sfn.Condition.stringEquals('$.cookResult.pizzaStatus', 'burnt'), cookPizzaFail)
+        .otherwise(deliverPizza)
+        .afterwards())
+    .next(new sfn.Choice(this, 'Delivered?')
+      .when(sfn.Condition.booleanEquals('$.deliveryStatus.delivered', true), deliveredPizza)
+      .otherwise(driverLostPizza))
 
     const logGroup = new logs.LogGroup(this, 'MyLogGroup');
 

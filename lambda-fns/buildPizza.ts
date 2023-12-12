@@ -1,5 +1,12 @@
 exports.handler = async function(flavour:any) {
     console.log("Building Pizza.");
 
-    return {'pizzaBuilt': 'Pepperoni'}
+    let outOfCheese = true;
+    let staffOnStrike = true;
+
+    return {
+        'pizzaBuilt': 'Pepperoni',
+        'outOfCheese': outOfCheese,
+        'staffOnStrike': staffOnStrike
+    }
 }
