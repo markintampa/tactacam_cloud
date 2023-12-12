@@ -2,6 +2,7 @@ import * as cdk from '@aws-cdk/core';
 import lambda = require('@aws-cdk/aws-lambda');
 import apigw = require('@aws-cdk/aws-apigatewayv2');
 import sfn = require('@aws-cdk/aws-stepfunctions');
+import * as logs from '@aws-cdk/aws-logs';
 import tasks = require('@aws-cdk/aws-stepfunctions-tasks');
 import { Effect, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
 
@@ -15,7 +16,7 @@ export class TheStateMachineStack extends cdk.Stack {
      
     //The first thing we need to do is see if they are asking for pineapple on a pizza
     let pineappleCheckLambda = new lambda.Function(this, 'pineappleCheckLambdaHandler', {
-      runtime: lambda.Runtime.NODEJS_12_X,
+      runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset('lambda-fns'),
       handler: 'orderPizza.handler'
     });
@@ -39,6 +40,19 @@ export class TheStateMachineStack extends cdk.Stack {
       outputPath: '$.pineappleAnalysis'
     });
 
+    // TODO: Step Building Pizza
+    // ERROR: Staff walked out, no pizza.
+    // ERROR: Ran out of cheese.
+    // SUCCESS: Pizza Built!
+
+    // TODO: Step Cooking Pizza
+    // ERROR: Burnt
+    // SUCCESS: Cooked!
+
+    // TODO: Step Deliver Pizza
+    // ERROR: Driver lost
+    // SUCCESS: Delivered!
+
     //Express Step function definition
     const definition = sfn.Chain
     .start(orderPizza)
@@ -47,11 +61,17 @@ export class TheStateMachineStack extends cdk.Stack {
         .when(sfn.Condition.booleanEquals('$.pineappleAnalysis.containsPineapple', true), pineappleDetected) // Fail for pineapple
         .otherwise(cookPizza));
 
+    const logGroup = new logs.LogGroup(this, 'MyLogGroup');
+
     let stateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definition,
       timeout: cdk.Duration.minutes(5),
       tracingEnabled: true,
-      stateMachineType: sfn.StateMachineType.EXPRESS
+      stateMachineType: sfn.StateMachineType.EXPRESS,
+      logs: {
+        destination: logGroup,
+        level: sfn.LogLevel.ALL,
+      },
     });
 
     /**
