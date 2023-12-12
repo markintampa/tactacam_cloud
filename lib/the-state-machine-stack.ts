@@ -71,6 +71,7 @@ export class TheStateMachineStack extends cdk.Stack {
       logs: {
         destination: logGroup,
         level: sfn.LogLevel.ALL,
+        includeExecutionData: true,
       },
     });
 
