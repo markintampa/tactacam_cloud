@@ -7,5 +7,7 @@ exports.handler = async function(flavour:any) {
         containsPineapple = true;
     }
 
+    console.log("Storing order in DB for reference...")
+
     return {'containsPineapple': containsPineapple}
 }

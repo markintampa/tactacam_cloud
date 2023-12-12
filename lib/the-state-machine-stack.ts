@@ -102,13 +102,18 @@ export class TheStateMachineStack extends cdk.Stack {
       payloadResponseOnly: true
     })
 
-    // If they didnt ask for pineapple let's cook the pizza
+    // Mission accomplished
     const deliveredPizza = new sfn.Succeed(this, 'Pizza Delivered!', {
       outputPath: '$.deliveryStatus'
     });
 
-    // If they didnt ask for pineapple let's cook the pizza
-    const driverLostPizza = new sfn.Fail(this, 'Epic cheese fail.', {
+    // Mission accomplished...almost
+    const holdForPickup = new sfn.Succeed(this, 'Pizza drying out under heat lamps', {
+      outputPath: '$.deliveryStatus'
+    });
+
+    // Driver lost pizza
+    const driverLostPizza = new sfn.Fail(this, 'Good help is hard to find.', {
       cause: 'Pizza driver lost your pizza!',
       error: 'Failed To Deliver Pizza',
     });
@@ -130,6 +135,7 @@ export class TheStateMachineStack extends cdk.Stack {
         .afterwards())
     .next(new sfn.Choice(this, 'Delivered?')
       .when(sfn.Condition.booleanEquals('$.deliveryStatus.delivered', true), deliveredPizza)
+      .when(sfn.Condition.booleanEquals('$.deliveryStatus.holdForPickup', true), holdForPickup)
       .otherwise(driverLostPizza))
 
     const logGroup = new logs.LogGroup(this, 'MyLogGroup');
