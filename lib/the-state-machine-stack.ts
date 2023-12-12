@@ -35,11 +35,6 @@ export class TheStateMachineStack extends cdk.Stack {
       error: 'Failed To Make Pizza',
     });
 
-    // If they didnt ask for pineapple let's cook the pizza
-    // const cookPizza = new sfn.Succeed(this, 'Lets make your pizza', {
-    //   outputPath: '$.pineappleAnalysis'
-    // });
-
     // Step Building Pizza
     // ERROR: Staff walked out, no pizza.
     // ERROR: Ran out of cheese.
@@ -61,8 +56,13 @@ export class TheStateMachineStack extends cdk.Stack {
       cause: 'Ran out of cheese!',
       error: 'Failed To Build Pizza',
     });
+
+    const staffWalkoutFail = new sfn.Fail(this, "Staff doesn't want to work.", {
+      cause: 'Nobody wants to work! (Except for Mark Mniece, he is totally down)',
+      error: 'Failed To Build Pizza',
+    });
     
-    // TODO: Step Cooking Pizza
+    // Step Cooking Pizza
     // ERROR: Burnt
     // SUCCESS: Cooked!
 
@@ -84,10 +84,9 @@ export class TheStateMachineStack extends cdk.Stack {
       error: 'Pizza burnt!',
     });
   
-    // TODO: Step Deliver Pizza
+    // Step Deliver Pizza
     // ERROR: Driver lost
     // SUCCESS: Delivered!
-
 
     let deliverPizzaLambda = new lambda.Function(this, 'deliverPizzaLambdaHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
@@ -125,8 +124,9 @@ export class TheStateMachineStack extends cdk.Stack {
         .when(sfn.Condition.booleanEquals('$.pineappleAnalysis.containsPineapple', true), pineappleDetected)
         .otherwise(buildPizza)
         .afterwards())
-    .next(new sfn.Choice(this, 'Got cheese?')
+    .next(new sfn.Choice(this, 'Did we build it?')
         .when(sfn.Condition.booleanEquals('$.buildResult.outOfCheese', true), buildPizzaFail)
+        .when(sfn.Condition.booleanEquals('$.buildResult.staffOnStrike', true), staffWalkoutFail)
         .otherwise(cookPizza)
         .afterwards())
     .next(new sfn.Choice(this, 'Cooked properly?')
