@@ -1,11 +1,5 @@
 exports.handler = async function(flavour:any) {
-    console.log("Requested Pizza :", JSON.stringify(flavour, undefined, 2));
-    
-    let containsPineapple = false;
-    
-    if(flavour == 'pineapple' || flavour =='hawaiian'){
-        containsPineapple = true;
-    }
+    console.log("Cooking Pizza...");
 
-    return {'containsPineapple': containsPineapple}
+    return {'pizzaStatus': 'cooked'} // or burnt
 }

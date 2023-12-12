@@ -36,22 +36,72 @@ export class TheStateMachineStack extends cdk.Stack {
     });
 
     // If they didnt ask for pineapple let's cook the pizza
-    const cookPizza = new sfn.Succeed(this, 'Lets make your pizza', {
-      outputPath: '$.pineappleAnalysis'
-    });
+    // const cookPizza = new sfn.Succeed(this, 'Lets make your pizza', {
+    //   outputPath: '$.pineappleAnalysis'
+    // });
 
-    // TODO: Step Building Pizza
+    // Step Building Pizza
     // ERROR: Staff walked out, no pizza.
     // ERROR: Ran out of cheese.
     // SUCCESS: Pizza Built!
+    let buildPizzaLambda = new lambda.Function(this, 'pizzaBuildLambdaHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset('lambda-fns'),
+      handler: 'buildPizza.handler'
+    });
 
+    const buildPizza = new tasks.LambdaInvoke(this, "Build Pizza Job", {
+      lambdaFunction: buildPizzaLambda,
+      inputPath: '$.flavour',
+      resultPath: '$.pineappleAnalysis',
+      payloadResponseOnly: true
+    })
+    
     // TODO: Step Cooking Pizza
     // ERROR: Burnt
     // SUCCESS: Cooked!
 
+    let cookPizzaLambda = new lambda.Function(this, 'cookPizzaLambdaHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset('lambda-fns'),
+      handler: 'cookPizza.handler'
+    });
+
+    const cookPizza = new tasks.LambdaInvoke(this, "Cook Pizza Job", {
+      lambdaFunction: cookPizzaLambda,
+      inputPath: '$.flavour',
+      resultPath: '$.pineappleAnalysis',
+      payloadResponseOnly: true
+    })
+
     // TODO: Step Deliver Pizza
     // ERROR: Driver lost
     // SUCCESS: Delivered!
+
+
+    let deliverPizzaLambda = new lambda.Function(this, 'deliverPizzaLambdaHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset('lambda-fns'),
+      handler: 'deliverPizza.handler'
+    });
+
+    const deliverPizza = new tasks.LambdaInvoke(this, "Deliver Pizza Job", {
+      lambdaFunction: deliverPizzaLambda,
+      inputPath: '$.flavour',
+      resultPath: '$.deliveryStatus',
+      payloadResponseOnly: true
+    })
+
+    // If they didnt ask for pineapple let's cook the pizza
+    const deliveredPizza = new sfn.Succeed(this, 'Pizza Delivered!', {
+      outputPath: '$.deliveryStatus'
+    });
+
+    // If they didnt ask for pineapple let's cook the pizza
+    const driverLostPizza = new sfn.Fail(this, 'Sorry, we failed you.', {
+      cause: 'Pizza driver lost your pizza!',
+      error: 'Failed To Deliver Pizza',
+    });
 
     //Express Step function definition
     const definition = sfn.Chain
@@ -59,7 +109,13 @@ export class TheStateMachineStack extends cdk.Stack {
     .next(new sfn.Choice(this, 'With Pineapple?') // Logical choice added to flow
         // Look at the "status" field
         .when(sfn.Condition.booleanEquals('$.pineappleAnalysis.containsPineapple', true), pineappleDetected) // Fail for pineapple
-        .otherwise(cookPizza));
+        .otherwise(buildPizza)
+        .afterwards()
+        .next(cookPizza)
+        .next(deliverPizza)
+        .next(new sfn.Choice(this, 'Delivered?')
+          .when(sfn.Condition.booleanEquals('$.deliveryStatus.delivered', true), deliveredPizza)
+          .otherwise(driverLostPizza)))
 
     const logGroup = new logs.LogGroup(this, 'MyLogGroup');
 
