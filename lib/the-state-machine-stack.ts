@@ -153,7 +153,7 @@ export class TheStateMachineStack extends cdk.Stack {
     //Express Step function definition
     const definition = sfn.Chain
     .start(orderPizza)
-    .next(new sfn.Choice(this, 'With Pineapple?')
+    .next(new sfn.Choice(this, 'Valid Order?')
         .when(sfn.Condition.booleanEquals('$.orderAnalysis.containsPineapple', true), pineappleDetected)
         .when(sfn.Condition.isPresent('$.orderAnalysis.errors[0]'), orderErrors)
         .otherwise(buildPizza)

@@ -22,7 +22,7 @@ After deployment you should have an API Gateway HTTP API where on the base url y
   }
 }
 
-//to see a failure
+//to see an address failure
 {
   "order": {
     "flavour": "pepperoni",
@@ -32,7 +32,23 @@ After deployment you should have an API Gateway HTTP API where on the base url y
     "delivery": true
   }
 }
+
+//to see a flavour failure
+{
+  "order": {
+    "flavour": "pineapple",
+    "size": "large",
+    "toppings": ["bacon", "olives", "jalapenos"],
+    "address": "Nope",
+    "delivery": true
+  }
+}
 ```
+
+### Fail Diagram
+
+
+![Architecture](img/PizzaFail.png)
 
 If you pass in pineapple or hawaiian you should see the step function flow fail in the response payload
 
