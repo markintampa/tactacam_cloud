@@ -2,7 +2,7 @@
 
 This state machine is the framework for a pizza delivery service that could really use some help.  Random events like burnt pizza, staff on strike, or driver getting lost may occur, but the software is infallible, naturally.  Logical next steps are finishing the test suite, adding retries in the event of things like burnt pizza, and building out the notification service to keep the customer informed.
 
-As an afterthought, the process should be modified to be async, initial response with order_id and price, then subsequent steps be communicated to the customer via notifications.  A Standard workflow would be used, which allows for longer than 5 minute duration.
+As an afterthought, the process should be modified to be async, initial response with order_id and price, then subsequent steps be communicated to the customer via notifications.  A Standard workflow would be used, which allows for longer than 5 minute duration.  Additionally, the-state-machine-stack.ts is beginning to get unruly and steps should be broken out into modules for maintainability and developer sanity.
 
 ![Architecture](img/Architecture.png)
 
