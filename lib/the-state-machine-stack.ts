@@ -24,8 +24,8 @@ export class TheStateMachineStack extends cdk.Stack {
     // Step functions are built up of steps, we need to define our first step
     const orderPizza = new tasks.LambdaInvoke(this, "Order Pizza Job", {
       lambdaFunction: pineappleCheckLambda,
-      inputPath: '$.flavour',
-      resultPath: '$.pineappleAnalysis',
+      inputPath: '$.order',
+      resultPath: '$.orderAnalysis',
       payloadResponseOnly: true
     })
 
@@ -33,6 +33,11 @@ export class TheStateMachineStack extends cdk.Stack {
     const pineappleDetected = new sfn.Fail(this, 'Sorry, We Dont add Pineapple', {
       cause: 'They asked for Pineapple',
       error: 'Failed To Make Pizza',
+    });
+
+    const orderErrors = new sfn.Fail(this, 'Bad order', {
+      cause: 'Missing information',
+      error: 'Invalid submission',
     });
 
     // Step Building Pizza
@@ -47,7 +52,7 @@ export class TheStateMachineStack extends cdk.Stack {
 
     const buildPizza = new tasks.LambdaInvoke(this, "Build Pizza Job", {
       lambdaFunction: buildPizzaLambda,
-      inputPath: '$.flavour',
+      inputPath: '$.order',
       resultPath: '$.buildResult',
       payloadResponseOnly: true
     })
@@ -74,7 +79,7 @@ export class TheStateMachineStack extends cdk.Stack {
 
     const cookPizza = new tasks.LambdaInvoke(this, "Cook Pizza Job", {
       lambdaFunction: cookPizzaLambda,
-      inputPath: '$.flavour',
+      inputPath: '$.order',
       resultPath: '$.cookResult',
       payloadResponseOnly: true
     })
@@ -83,6 +88,34 @@ export class TheStateMachineStack extends cdk.Stack {
       cause: 'Cook fell asleep...',
       error: 'Pizza burnt!',
     });
+
+    // Step Locate driver
+    let locateDriverLambda = new lambda.Function(this, 'locateDriverLambdaHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset('lambda-fns'),
+      handler: 'locateDriver.handler'
+    });
+
+    const locateDriver = new tasks.LambdaInvoke(this, "Locate driver Job", {
+      lambdaFunction: locateDriverLambda,
+      inputPath: '$.order',
+      resultPath: '$.status',
+      payloadResponseOnly: true
+    })
+
+    // Step driver en route
+    let driverEnRouteLambda = new lambda.Function(this, 'driverEnRouteLambdaHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset('lambda-fns'),
+      handler: 'driverEnRoute.handler'
+    });
+
+    const driverEnRoute = new tasks.LambdaInvoke(this, "Driver en route", {
+      lambdaFunction: driverEnRouteLambda,
+      inputPath: '$.status',
+      resultPath: '$.deliveryStatus',
+      payloadResponseOnly: true
+    })
   
     // Step Deliver Pizza
     // ERROR: Driver lost
@@ -96,7 +129,7 @@ export class TheStateMachineStack extends cdk.Stack {
 
     const deliverPizza = new tasks.LambdaInvoke(this, "Deliver Pizza Job", {
       lambdaFunction: deliverPizzaLambda,
-      inputPath: '$.flavour',
+      inputPath: '$.order',
       resultPath: '$.deliveryStatus',
       payloadResponseOnly: true
     })
@@ -121,7 +154,8 @@ export class TheStateMachineStack extends cdk.Stack {
     const definition = sfn.Chain
     .start(orderPizza)
     .next(new sfn.Choice(this, 'With Pineapple?')
-        .when(sfn.Condition.booleanEquals('$.pineappleAnalysis.containsPineapple', true), pineappleDetected)
+        .when(sfn.Condition.booleanEquals('$.orderAnalysis.containsPineapple', true), pineappleDetected)
+        .when(sfn.Condition.isPresent('$.orderAnalysis.errors[0]'), orderErrors)
         .otherwise(buildPizza)
         .afterwards())
     .next(new sfn.Choice(this, 'Did we build it?')
@@ -131,8 +165,10 @@ export class TheStateMachineStack extends cdk.Stack {
         .afterwards())
     .next(new sfn.Choice(this, 'Cooked properly?')
         .when(sfn.Condition.stringEquals('$.cookResult.pizzaStatus', 'burnt'), cookPizzaFail)
-        .otherwise(deliverPizza)
+        .otherwise(locateDriver)
         .afterwards())
+    .next(driverEnRoute)
+    .next(deliverPizza)
     .next(new sfn.Choice(this, 'Delivered?')
       .when(sfn.Condition.booleanEquals('$.deliveryStatus.delivered', true), deliveredPizza)
       .when(sfn.Condition.booleanEquals('$.deliveryStatus.holdForPickup', true), holdForPickup)

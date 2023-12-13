@@ -1,11 +1,10 @@
-# The State Machine
+# The Pizza Machine!
 
-This is an example CDK stack to deploy The State Machine stack described by Jeremy Daly here - https://www.jeremydaly.com/serverless-microservice-patterns-for-aws/#statemachine
+This state machine is the framework for a pizza delivery service that could really use some help.  Random events like burnt pizza, staff on strike, or driver getting lost may occur, but the software is infallible, naturally.  Likely next steps are finishing the test suite, adding retries in the event of things like burnt pizza, and building out the notification service to keep the customer informed.
 
-You would use this pattern for simple or complex business logic in a synchronous or an asynchronous setup. Step Functions come with lots of built in robustness features that will reduce your code liability 
+![Architecture](img/Architecture.png)
 
-![Architecture](img/statemachine-arch.png)
-
+`PS - Personally, I love hawiian/pineapple pizza...`
 
 ### Testing It Out
 
@@ -14,12 +13,24 @@ After deployment you should have an API Gateway HTTP API where on the base url y
 ```json
 // for a succesful execution
 {
-    "flavour": "pepperoni"
+  "order": {
+    "flavour": "pepperoni",
+    "size": "large",
+    "toppings": ["bacon", "olives", "jalapenos"],
+    "address": "1234 Smith St",
+    "delivery": true
+  }
 }
 
 //to see a failure
 {
-    "flavour": "pineapple"
+  "order": {
+    "flavour": "pepperoni",
+    "size": "large",
+    "toppings": ["bacon", "olives", "jalapenos"],
+    "address": "Nope",
+    "delivery": true
+  }
 }
 ```
 

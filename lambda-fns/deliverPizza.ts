@@ -1,3 +1,4 @@
+import { notifierService } from './notifierService';
 import { weightedRandom } from './weightedRandom';
 
 exports.handler = async function(delivery:any) {
@@ -6,7 +7,11 @@ exports.handler = async function(delivery:any) {
     let holdForPickup = !delivery;
 
     if (!pizzaDelivered && !holdForPickup) {
-        console.log("Notify customer we dropped the ball...er, pizza")
+        notifierService("Notify customer we dropped the ball...er, pizza");
+    }
+
+    if(holdForPickup) {
+        notifierService("Pizza ready for pickup!")
     }
 
     return { 'delivered': pizzaDelivered, 'holdForPickup': holdForPickup }
