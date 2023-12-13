@@ -10,6 +10,9 @@ As an afterthought, the process should be modified to be async, initial response
 
 ### Testing It Out
 
+Deployed API url for testing:
+https://wft00qaml4.execute-api.us-east-2.amazonaws.com/
+
 After deployment you should have an API Gateway HTTP API where on the base url you can send a POST request with a payload in the following format:
 
 ```json
